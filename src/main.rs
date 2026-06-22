@@ -22,7 +22,7 @@ where
             break;
         }
 
-        thread::sleep(chunk_time);
+        // thread::sleep(chunk_time);
     }
 }
 
@@ -59,7 +59,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Channel: DSP -> Display
     let (tx_bands, rx_bands) = mpsc::channel::<Vec<f32>>();
 
-    let audio_source = audio::wav::WavSource::new()?;
+    println!("Starting...");   
+    let audio_source = audio::mic::MicrophoneSource::new()?;
+    println!("Microphone initialized");
+  
+    // let audio_source = audio::wav::WavSource::new()?;
     let display_source = display::terminal::TerminalDisplay::new()?;
     
     let producer_thread = thread::spawn(move || produce_audio(audio_source, tx_chunk));
