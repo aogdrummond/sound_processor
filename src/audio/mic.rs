@@ -35,9 +35,12 @@ impl MicrophoneSource {
                     &config.into(),
                     move |data: &[f32], _| {
 
-                        for sample in data {
-                            let _ = tx.send(*sample);
-                        }
+                    for frame in data.chunks_exact(2) {
+
+                        let left = frame[0];
+
+                        let _ = tx.send(left);
+                    }
 
                     },
                     move |err| {
