@@ -60,10 +60,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (tx_bands, rx_bands) = mpsc::channel::<Vec<f32>>();
 
     println!("Starting...");   
-    let audio_source = audio::mic::MicrophoneSource::new()?;
+    // let audio_source = audio::mic::MicrophoneSource::new()?;
     println!("Microphone initialized");
   
-    // let audio_source = audio::wav::WavSource::new()?;
+    let audio_source = audio::wav::WavSource::new()?;
     // let display_source = display::terminal::TerminalDisplay::new()?;
     // let display_source = display::terminal_bars::TerminalBars::new()?;
     let display_source = display::oled_bars::OledBars::new()?;
