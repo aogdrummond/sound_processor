@@ -65,7 +65,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   
     // let audio_source = audio::wav::WavSource::new()?;
     // let display_source = display::terminal::TerminalDisplay::new()?;
-    let display_source = display::terminal_bars::TerminalBars::new()?;
+    // let display_source = display::terminal_bars::TerminalBars::new()?;
+    let display_source = display::oled_bars::OledBars::new()?;
     let producer_thread = thread::spawn(move || produce_audio(audio_source, tx_chunk));
     let processing_thread = thread::spawn(move || process_audio(rx_chunk, tx_bands));
     let display_thread = thread::spawn(move || display_results(display_source,rx_bands));
