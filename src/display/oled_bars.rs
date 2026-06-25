@@ -3,24 +3,16 @@ use super::source::DisplaySource;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
-use embedded_graphics::{
-    pixelcolor::BinaryColor,
-    prelude::*,
-    primitives::{
-        PrimitiveStyle,
-        Rectangle,
-    },
+use embedded_graphics::{pixelcolor::BinaryColor,prelude::*,
+    primitives::{PrimitiveStyle,Rectangle}
 };
 
 use linux_embedded_hal::I2cdev;
 use ssd1306::mode::BufferedGraphicsMode;
-use ssd1306::{
-    prelude::*,
-    I2CDisplayInterface,
-    Ssd1306,
-};
+use ssd1306::{prelude::*,I2CDisplayInterface,Ssd1306};
 
 const NUM_BANDS: usize = 8;
+const UPDATE_INTERVAL_MS: int = 100
 
 pub struct OledBars {
     display: Ssd1306<
@@ -33,7 +25,7 @@ pub struct OledBars {
 impl OledBars {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
 
-        let i2c = I2cdev::new("/dev/i2c-1")?;
+        let i2c = I2cdev::new("/dev/i2c-1")?; //RPi I2C peripheral
 
         let interface = I2CDisplayInterface::new(i2c);
 
@@ -59,41 +51,24 @@ impl DisplaySource for OledBars {
     ) {
 
         let mut last_update = Instant::now();
-
         let mut band_acc = vec![0.0f32; NUM_BANDS];
         let mut count = 0usize;
-
         let mut displayed = vec![0.0f32; NUM_BANDS];
 
         while let Ok(bands) = rx_bands.recv() {
-
+            
+            //Consume from channel
             for i in 0..NUM_BANDS {
                 band_acc[i] += bands[i];
             }
 
-            count += 1;
+            count += 1; //Every time count increases it means a new "chunk"
 
-            if last_update.elapsed() >= Duration::from_millis(100)
-                && count > 0
-            {
-                last_update = Instant::now();
-
-                for i in 0..NUM_BANDS {
-
-                    let avg =
-                        to_db_display(
-                            band_acc[i] / count as f32
-                        );
-
-                    displayed[i] =
-                        0.8 * displayed[i]
-                        + 0.2 * avg;
-                }
-
-                self.draw_bars(&displayed);
-
-                band_acc.fill(0.0);
-                count = 0;
+            // //time_to_upate
+            // if last_update.elapsed() >= Duration::from_millis(UPDATE_INTERVAL_MS)
+            //     && count > 0
+            if self.is_time_to_update() {
+                self.update_display();
             }
         }
     }
@@ -101,14 +76,32 @@ impl DisplaySource for OledBars {
 
 impl OledBars {
 
-    fn draw_bars(
-        &mut self,
-        bands: &[f32]
-    ) {
+    fn is_time_to_update(&mut self)-> bool{
+        let bool is_time = (last_update.elapsed() >= Duration::from_millis(UPDATE_INTERVAL_MS) && count > 0);        
+        is_time
+    }
 
-        self.display
-            .clear(BinaryColor::Off)
-            .unwrap();
+    fn update_display(&mut self){
+        last_update = Instant::now();
+
+        for i in 0..NUM_BANDS {
+            let avg = to_db_display(band_acc[i] / count as f32);
+            displayed[i] = 0.8 * displayed[i] + 0.2 * avg;
+        }
+
+        self.draw_bars(&displayed);
+        band_acc.fill(0.0);
+        count = 0;
+
+    }
+
+}
+
+impl OledBars {
+
+    fn draw_bars(&mut self,bands: &[f32]) {
+
+        self.display.clear(BinaryColor::Off).unwrap();
 
         let width = 128;
         let height = 64;
@@ -117,34 +110,20 @@ impl OledBars {
 
         for (i, value) in bands.iter().enumerate() {
 
-            let normalized =
-                (value / 80.0)
-                .clamp(0.0, 1.0);
+            let normalized = (value / 80.0).clamp(0.0, 1.0);
 
-            let bar_height =
-                (normalized * height as f32)
-                as i32;
+            let bar_height = (normalized * height as f32) as i32;
 
-            let x =
-                (i * bar_width) as i32;
+            let x = (i * bar_width) as i32;
 
-            let y =
-                height as i32 - bar_height;
+            let y = height as i32 - bar_height;
 
-            Rectangle::new(
-                Point::new(x, y),
-                Size::new(
-                    (bar_width - 2) as u32,
+            Rectangle::new(Point::new(x, y),Size::new((bar_width - 2) as u32,
                     bar_height as u32,
                 ),
             )
-            .into_styled(
-                PrimitiveStyle::with_fill(
-                    BinaryColor::On
-                ),
-            )
-            .draw(&mut self.display)
-            .unwrap();
+            .into_styled(PrimitiveStyle::with_fill(BinaryColor::On),
+            ).draw(&mut self.display).unwrap();
         }
 
         self.display.flush().unwrap();
@@ -155,8 +134,7 @@ fn to_db_display(
     amplitude: f32
 ) -> f32 {
 
-    let db =
-        20.0 * amplitude.max(1e-10).log10();
+    let db = 20.0 * amplitude.max(1e-10).log10();
 
     db.clamp(-80.0, 0.0) + 80.0
 }

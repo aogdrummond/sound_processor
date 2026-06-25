@@ -6,8 +6,14 @@ mod display;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
+use std::time::Instant;
 
 const SAMPLE_RATE: usize = 48000;
+
+pub struct AudioFrame {
+    pub timestamp: Instant,
+    pub samples: Vec<f32>,
+}
 
 fn produce_audio<S>(
     mut source: S,
@@ -17,8 +23,10 @@ where
 {
     let chunk_time = Duration::from_secs_f64(audio::wav::CHUNK_SIZE as f64 / SAMPLE_RATE as f64);
     while let Some(chunk) = source.next_chunk() {
-
-        if tx_chunk.send(chunk).is_err() {
+        // Include here the timestamp
+        let frame = AudioFrame{timestamp: Instant::now(),
+                               samples: chunk};
+        if tx_chunk.send(frame).is_err() {
             break;
         }
 
@@ -30,9 +38,11 @@ fn process_audio(rx_chunk: mpsc::Receiver<Vec<f32>>,
                  tx_bands: mpsc::Sender<Vec<f32>>){
     let mut processor = Processor::new(audio::wav::CHUNK_SIZE);
 
-    while let Ok(chunk) = rx_chunk.recv() {
-
-        let bands = processor.process(&chunk);
+    while let Ok(frame) = rx_chunk.recv() {
+        println!("Latency: {:.3} ms",
+            frame.timestamp.elapsed().as_secs_f64() * 1000.0
+        );
+        let bands = processor.process(&frame.samples);
 
         if tx_bands.send(bands).is_err() {
             break;
