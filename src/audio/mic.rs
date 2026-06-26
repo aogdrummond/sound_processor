@@ -36,35 +36,30 @@ impl MicrophoneSource {
         println!("Channels: {}", config.channels());
 
         let (tx, rx) = mpsc::channel::<f32>();
-        let stream = match sample_format {
-            cpal::SampleFormat::F32 => build_stream::<f32>(&device, &config, tx)?,
-            cpal::SampleFormat::I16 => build_stream::<i16>(&device, &config, tx)?,
-            cpal::SampleFormat::U16 => build_stream::<u16>(&device, &config, tx)?,
-};
-    //     let stream = match config.sample_format() {
+        let stream = match config.sample_format() {
 
-    //         cpal::SampleFormat::F32 => {
+            cpal::SampleFormat::F32 => {
 
-    //             let channels = config.channels() as usize;
-    //             device.build_input_stream(
-    //             &config.into(),
-    //             move |data: &[f32], _| {
-    //                 for frame in data.chunks_exact(channels) {
-    //                     let sample = frame[0];
-    //                     let _ = tx.send(sample);
-    //                 }
-    //             },
-    //             move |err| {
-    //                 eprintln!("Audio error: {}", err);
-    //             },
-    //             None,
-    //         )?
-    //         }
-    // // cpal::SampleFormat::I16 => { ... }
+                let channels = config.channels() as usize;
+                device.build_input_stream(
+                &config.into(),
+                move |data: &[f32], _| {
+                    for frame in data.chunks_exact(channels) {
+                        let sample = frame[0];
+                        let _ = tx.send(sample);
+                    }
+                },
+                move |err| {
+                    eprintln!("Audio error: {}", err);
+                },
+                None,
+            )?
+            }
+    // cpal::SampleFormat::I16 => { ... }
 
-    // // cpal::SampleFormat::U16 => { ... }
-    //         _ => return Err("Unsupported sample format".into()),
-    //     };
+    // cpal::SampleFormat::U16 => { ... }
+            _ => return Err("Unsupported sample format".into()),
+        };
 
         stream.play()?;
 
