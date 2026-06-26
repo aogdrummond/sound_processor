@@ -22,8 +22,8 @@ impl MicrophoneSource {
         // Pick a supported config (IMPORTANT FIX)
         let supported_config = device
             .supported_input_configs()?
-            .next()
-            .ok_or("No supported input configs")?
+            .find(|c| c.channels() == 1)
+            .ok_or("No mono input config found")?
             .with_max_sample_rate();
 
         let config: cpal::StreamConfig = supported_config.clone().into();
@@ -36,15 +36,10 @@ impl MicrophoneSource {
         let (tx, rx) = mpsc::channel::<f32>();
 
         let stream = match sample_format {
-            cpal::SampleFormat::F32 => {
-                build_stream::<f32>(&device, &config, tx)?
-            }
-            cpal::SampleFormat::I16 => {
-                build_stream::<i16>(&device, &config, tx)?
-            }
-            cpal::SampleFormat::U16 => {
-                build_stream::<u16>(&device, &config, tx)?
-            }
+            cpal::SampleFormat::F32 => build_stream::<f32>(&device, &config, tx)?,
+            cpal::SampleFormat::I16 => build_stream::<i16>(&device, &config, tx)?,
+            cpal::SampleFormat::U16 => build_stream::<u16>(&device, &config, tx)?,
+            _ => return Err("Unsupported sample format".into()),
         };
 
         stream.play()?;
@@ -70,7 +65,7 @@ where
         config,
         move |data: &[T], _| {
             for frame in data.chunks_exact(channels) {
-                let sample: f32 = frame[0].to_f32();
+                let sample: f32 = cpal::Sample::to_f32(&frame[0]);
                 let _ = tx.send(sample);
             }
         },
