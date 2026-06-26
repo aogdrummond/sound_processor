@@ -35,16 +35,18 @@ where
 }
 
 fn process_audio(rx_chunk: mpsc::Receiver<AudioFrame>,
-                 tx_bands: mpsc::Sender<Vec<f32>>){
+                 tx_bands: mpsc::Sender<AudioFrame>){
     let mut processor = Processor::new(audio::wav::CHUNK_SIZE);
 
     while let Ok(frame) = rx_chunk.recv() {
-        println!("Latency: {:.3} ms",
+        println!("Latency Processing: {:.3} ms",
             frame.timestamp.elapsed().as_secs_f64() * 1000.0
         );
-        let bands = processor.process(&frame.samples);
 
-        if tx_bands.send(bands).is_err() {
+        let bands = processor.process(&frame.samples);
+        let frame2 = AudioFrame{timestamp: Instant::now(),
+                                    samples: bands};
+        if tx_bands.send(frame2).is_err() {
             break;
         }
     }
@@ -54,7 +56,7 @@ fn process_audio(rx_chunk: mpsc::Receiver<AudioFrame>,
 
 fn display_results<S>(
     mut source: S,
-    rx_bands: mpsc::Receiver<Vec<f32>>)
+    rx_bands: mpsc::Receiver<AudioFrame>)
 where
     S: display::source::DisplaySource,
 {
@@ -67,7 +69,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (tx_chunk, rx_chunk) = mpsc::channel::<AudioFrame>();
 
     // Channel: DSP -> Display
-    let (tx_bands, rx_bands) = mpsc::channel::<Vec<f32>>();
+    let (tx_bands, rx_bands) = mpsc::channel::<AudioFrame>();
 
     println!("Starting...");   
     let audio_source = audio::mic::MicrophoneSource::new()?;

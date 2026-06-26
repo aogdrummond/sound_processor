@@ -47,7 +47,7 @@ impl DisplaySource for OledBars {
 
     fn display_results(
         &mut self,
-        rx_bands: mpsc::Receiver<Vec<f32>>
+        rx_bands: mpsc::Receiver<AudioFrame>
     ) {
 
         let mut last_update = Instant::now();
@@ -55,11 +55,13 @@ impl DisplaySource for OledBars {
         let mut count = 0usize;
         let mut displayed = vec![0.0f32; NUM_BANDS];
 
-        while let Ok(bands) = rx_bands.recv() {
-            
+        while let Ok(frame) = rx_bands.recv() {
+            println!("Latency Display: {:.3} ms",
+            frame.timestamp.elapsed().as_secs_f64() * 1000.0
+        );
             //Consume from channel
             for i in 0..NUM_BANDS {
-                band_acc[i] += bands[i];
+                band_acc[i] += frame.samples[i];
             }
 
             count += 1; //Every time count increases it means a new "chunk"
