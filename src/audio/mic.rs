@@ -33,11 +33,20 @@ pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
 
     let supported_config = device
         .supported_input_configs()?
-        .next()
-        .ok_or("No supported input config")?
+        .filter(|c| c.channels() == 1)
+        .find(|c| {
+            let fmt = c.sample_format();
+            fmt == cpal::SampleFormat::F32
+                || fmt == cpal::SampleFormat::I16
+                || fmt == cpal::SampleFormat::U16
+        })
+        .ok_or("No valid input config found")?
         .with_max_sample_rate();
 
     let config: cpal::StreamConfig = supported_config.clone().into();
+    if config.sample_rate.0 > 192000 {
+        return Err("Invalid sample rate detected (ALSA bug)".into());
+    }
     let sample_format = supported_config.sample_format();
 
     println!("Sample format: {:?}", sample_format);
