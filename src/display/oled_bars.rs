@@ -96,7 +96,7 @@ impl OledBars {
             let avg = to_db_display(band_acc[i] / *count as f32); // db of average
             displayed[i] = 0.8 * displayed[i] + 0.2 * avg; //This is an exponential moving average (EMA), a common low-pass filter for smoothing noisy signals.
         }
-
+        println!("DRAW");
         self.draw_bars(&displayed);
         band_acc.fill(0.0);
         *count = 0;
@@ -142,7 +142,14 @@ impl OledBars {
             ).draw(&mut self.display).unwrap();
         }
 
+        let t = Instant::now();
+
         self.display.flush().unwrap();
+
+        println!(
+            "flush = {:.3} ms",
+            t.elapsed().as_secs_f64() * 1000.0
+        );
     }
 }
 
