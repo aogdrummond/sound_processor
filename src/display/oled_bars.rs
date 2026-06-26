@@ -81,7 +81,7 @@ impl DisplaySource for OledBars {
 
 impl OledBars {
 
-    fn is_time_to_update(&mut self,&mut last_update: Instant, count:usize)-> bool{
+    fn is_time_to_update(&mut self, last_update: Instant, count:usize)-> bool{
         let is_time: bool = (last_update.elapsed() >= Duration::from_millis(UPDATE_INTERVAL_MS) && count > 0);        
         is_time
     }
@@ -89,7 +89,7 @@ impl OledBars {
     fn update_display(&mut self, band_acc: &mut Vec<f32>,
         count: &mut usize,
         displayed: &mut Vec<f32> ){
-        last_update = Instant::now();
+        // last_update = Instant::now();
 
         for i in 0..NUM_BANDS {
             let avg = to_db_display(band_acc[i] / *count as f32); // db of average
