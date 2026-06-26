@@ -1,6 +1,6 @@
 use std::sync::mpsc;
 use std::time::Instant;
-use super::super::audio::source::AudioFrame
+use super::super::audio::source::AudioFrame;
 
 
 pub trait DisplaySource {
