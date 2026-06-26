@@ -9,6 +9,7 @@ pub struct MicrophoneSource {
     _stream: cpal::Stream,
 }
 
+impl MicrophoneSource {
 pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
     let host = cpal::default_host();
 
@@ -46,6 +47,7 @@ pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         rx,
         _stream: stream,
     })
+  }
 }
 
 fn build_stream<T>(
