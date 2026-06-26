@@ -35,8 +35,11 @@ fn process_audio(rx_chunk: mpsc::Receiver<AudioFrame>,
         println!("Latency Processing: {:.3} ms",
             frame.timestamp.elapsed().as_secs_f64() * 1000.0
         );
-
+        let process_tstamp = Instant::now();
         let bands = processor.process(&frame.samples);
+        println!("Latency During Processing: {:.3} ms",
+            process_tstamp.elapsed().as_secs_f64() * 1000.0
+        );
         let frame2 = AudioFrame{timestamp: Instant::now(),
                                     samples: bands};
         if tx_bands.send(frame2).is_err() {
