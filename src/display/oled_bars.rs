@@ -22,10 +22,8 @@ pub struct OledBars {
     >,
 }
 
-pub struct AudioFrame {
-    pub timestamp: Instant,
-    pub samples: Vec<f32>,
-}
+use audio::source::AudioFrame
+
 
 impl OledBars {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
