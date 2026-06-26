@@ -27,9 +27,9 @@ pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
 
     let mut configs = device.supported_input_configs()?;
 
-    for cfg in configs.clone() {
-        println!("{:?}", cfg);
-    }
+    // for cfg in configs.clone() {
+    //     println!("{:?}", cfg);
+    // }
 
     let supported_config = device
         .supported_input_configs()?
