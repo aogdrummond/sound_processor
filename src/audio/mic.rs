@@ -3,58 +3,55 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
 use super::source::AudioSource;
 use super::wav::CHUNK_SIZE;
-
+use cpal::Sample;
 pub struct MicrophoneSource {
     rx: mpsc::Receiver<f32>,
     _stream: cpal::Stream,
 }
 
-impl MicrophoneSource {
-    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        let host = cpal::default_host();
+pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
+    let host = cpal::default_host();
 
-        let device = host
-            .default_input_device()
-            .ok_or("No input device found")?;
+    let device = host
+        .default_input_device()
+        .ok_or("No input device found")?;
 
-        println!("Using device: {}", device.name()?);
+    println!("Using device: {}", device.name()?);
 
-        // Pick a supported config (IMPORTANT FIX)
-        let supported_config = device
-            .supported_input_configs()?
-            .find(|c| c.channels() == 1)
-            .ok_or("No mono input config found")?
-            .with_max_sample_rate();
+    let supported_config = device
+        .supported_input_configs()?
+        .next()
+        .ok_or("No supported input configs")?
+        .with_max_sample_rate();
 
-        let config: cpal::StreamConfig = supported_config.clone().into();
-        let sample_format = supported_config.sample_format();
+    let config: cpal::StreamConfig = supported_config.clone().into();
+    let sample_format = supported_config.sample_format();
 
-        println!("Sample format: {:?}", sample_format);
-        println!("Sample rate: {}", config.sample_rate.0);
-        println!("Channels: {}", config.channels);
+    println!("Sample format: {:?}", sample_format);
+    println!("Sample rate: {}", config.sample_rate.0);
+    println!("Channels: {}", config.channels);
 
-        let (tx, rx) = mpsc::channel::<f32>();
+    let (tx, rx) = std::sync::mpsc::channel::<f32>();
 
-        let stream = match sample_format {
-            cpal::SampleFormat::F32 => build_stream::<f32>(&device, &config, tx)?,
-            cpal::SampleFormat::I16 => build_stream::<i16>(&device, &config, tx)?,
-            cpal::SampleFormat::U16 => build_stream::<u16>(&device, &config, tx)?,
-            _ => return Err("Unsupported sample format".into()),
-        };
+    let stream = match sample_format {
+        cpal::SampleFormat::F32 => build_stream::<f32>(&device, &config, tx)?,
+        cpal::SampleFormat::I16 => build_stream::<i16>(&device, &config, tx)?,
+        cpal::SampleFormat::U16 => build_stream::<u16>(&device, &config, tx)?,
+        _ => return Err("Unsupported sample format".into()),
+    };
 
-        stream.play()?;
+    stream.play()?;
 
-        Ok(Self {
-            rx,
-            _stream: stream,
-        })
-    }
+    Ok(Self {
+        rx,
+        _stream: stream,
+    })
 }
 
 fn build_stream<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
-    tx: mpsc::Sender<f32>,
+    tx: std::sync::mpsc::Sender<f32>,
 ) -> Result<cpal::Stream, Box<dyn std::error::Error>>
 where
     T: cpal::Sample + cpal::SizedSample + Send + 'static,
