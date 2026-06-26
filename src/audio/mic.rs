@@ -65,7 +65,7 @@ where
         config,
         move |data: &[T], _| {
             for frame in data.chunks_exact(channels) {
-                let sample: f32 = cpal::Sample::to_f32(&frame[0]);
+                let sample: f32 = frame[0].to_f32();
                 let _ = tx.send(sample);
             }
         },
