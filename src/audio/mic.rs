@@ -74,6 +74,7 @@ pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         _stream: stream,
     })
 }
+}
 
 impl AudioSource for MicrophoneSource {
 
