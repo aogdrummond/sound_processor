@@ -11,55 +11,47 @@ pub struct MicrophoneSource {
 
 impl MicrophoneSource {
 
-    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
+pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
+    let host = cpal::default_host();
 
-        let host = cpal::default_host();
+    let device = host
+        .input_devices()?
+        .find(|d| {
+            d.name()
+                .map(|n| n.contains("USB") || n.contains("Device"))
+                .unwrap_or(false)
+        })
+        .ok_or("No usable input device found")?;
 
-        // let device = host
-        //     .default_input_device()
-        //     .ok_or("No input device found")?;
+    println!("Using device: {}", device.name()?);
 
-        let device = host
-            .input_devices()?
-            .find(|d| {
-                d.name()
-                    .map(|n| n.contains("USB") || n.contains("Device"))
-                    .unwrap_or(false)
-            })
-            .ok_or("No usable input device found")?;
+    let mut configs = device.supported_input_configs()?;
 
-        println!("Supported configs:");
+    for cfg in configs.clone() {
+        println!("{:?}", cfg);
+    }
 
-        let configs = match device.supported_input_configs() {
-            Ok(c) => c,
-            Err(e) => {
-                eprintln!("Device does not support configs: {}", e);
-                return Err("Invalid audio device config".into());
-            }
-        };
+    let supported_config = device
+        .supported_input_configs()?
+        .next()
+        .ok_or("No supported input config")?
+        .with_max_sample_rate();
 
-        for cfg in configs? {
-            println!("{:?}", cfg);
-        }
+    let config: cpal::StreamConfig = supported_config.clone().into();
+    let sample_format = supported_config.sample_format();
 
-        let config = device
-                        .supported_input_configs()?
-                        .next()
-                        .ok_or("No supported input config")?
-                        .with_max_sample_rate();
-        println!("Using device: {}", device.name()?);
-        println!("Sample format: {:?}", config.sample_format());
-        println!("Sample Rate: {}", config.sample_rate().0);
-        println!("Channels: {}", config.channels());
+    println!("Sample format: {:?}", sample_format);
+    println!("Sample Rate: {}", config.sample_rate.0);
+    println!("Channels: {}", config.channels);
 
-        let (tx, rx) = mpsc::channel::<f32>();
-        let stream = match config.sample_format() {
+    let (tx, rx) = mpsc::channel::<f32>();
 
-            cpal::SampleFormat::F32 => {
+    let stream = match sample_format {
+        cpal::SampleFormat::F32 => {
+            let channels = config.channels as usize;
 
-                let channels = config.channels() as usize;
-                device.build_input_stream(
-                &config.into(),
+            device.build_input_stream(
+                &config,
                 move |data: &[f32], _| {
                     for frame in data.chunks_exact(channels) {
                         let sample = frame[0];
@@ -71,20 +63,16 @@ impl MicrophoneSource {
                 },
                 None,
             )?
-            }
-    // cpal::SampleFormat::I16 => { ... }
+        }
+        _ => return Err("Unsupported sample format".into()),
+    };
 
-    // cpal::SampleFormat::U16 => { ... }
-            _ => return Err("Unsupported sample format".into()),
-        };
+    stream.play()?;
 
-        stream.play()?;
-
-        Ok(Self {
-            rx,
-            _stream: stream,
-        })
-    }
+    Ok(Self {
+        rx,
+        _stream: stream,
+    })
 }
 
 impl AudioSource for MicrophoneSource {
