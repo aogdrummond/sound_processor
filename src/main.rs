@@ -36,9 +36,10 @@ fn process_audio(rx_chunk: mpsc::Receiver<AudioFrame>,
             frame.timestamp.elapsed().as_secs_f64() * 1000.0
         );
         let start = Instant::now();
+
         let bands = processor.process(&frame.samples);
-        let elapsed = start.elapsed();
-        println!("Elapsed: {:?}", elapsed);
+        let elapsed = start.elapsed().as_secs_f64() * 1000.0;
+        println!("Elapsed: {:?} ms", elapsed);
         let frame2 = AudioFrame{timestamp: Instant::now(),
                                     samples: bands};
         if tx_bands.send(frame2).is_err() {
