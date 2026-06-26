@@ -137,7 +137,7 @@ impl OledBars {
 
         for (i, value) in bands.iter().enumerate() {
 
-            let normalized = (value / 80.0).clamp(0.0, 1.0).powf(0.5);
+            let normalized = (value / 40.0).clamp(0.0, 1.0).powf(0.5);
 
             let bar_height = (normalized * graph_height as f32) as i32;
 
