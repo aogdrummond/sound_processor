@@ -22,7 +22,7 @@ pub struct OledBars {
     >,
 }
 
-use audio::source::AudioFrame
+use super::super::audio::source::AudioFrame;
 
 
 impl OledBars {
