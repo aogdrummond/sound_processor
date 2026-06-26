@@ -6,13 +6,30 @@ use std::time::{Duration, Instant};
 use embedded_graphics::{pixelcolor::BinaryColor,prelude::*,
     primitives::{PrimitiveStyle,Rectangle}
 };
-
+use embedded_graphics::{
+    mono_font::{
+        ascii::FONT_4X6,
+        MonoTextStyle,
+    },
+    text::{Baseline, Text},
+};
 use linux_embedded_hal::I2cdev;
 use ssd1306::mode::BufferedGraphicsMode;
 use ssd1306::{prelude::*,I2CDisplayInterface,Ssd1306};
 
 const NUM_BANDS: usize = 8;
 const UPDATE_INTERVAL_MS: u64 = 100;
+
+const BAND_LABELS: [&str; NUM_BANDS] = [
+    "63",
+    "125",
+    "250",
+    "500",
+    "1K",
+    "2K",
+    "4K",
+    "8K",
+];
 
 pub struct OledBars {
     display: Ssd1306<
@@ -113,18 +130,21 @@ impl OledBars {
 
         let width = 128;
         let height = 64;
+        let graph_height = 56;
+
 
         let bar_width = width / NUM_BANDS;
 
         for (i, value) in bands.iter().enumerate() {
 
-            let normalized = (value / 20.0).clamp(0.0, 1.0);
+            let normalized = (value / 80.0).clamp(0.0, 1.0).powf(0.5);
 
-            let bar_height = (normalized * height as f32) as i32;
+            let bar_height = (normalized * graph_height as f32) as i32;
 
+            let y = graph_height as i32 - bar_height;
+                
             let x = (i * bar_width) as i32;
 
-            let y = height as i32 - bar_height;
             println!(
                 "band={} value={:.2} normalized={:.2} height={} x={} y={}",
                 i,
@@ -141,7 +161,24 @@ impl OledBars {
             .into_styled(PrimitiveStyle::with_fill(BinaryColor::On),
             ).draw(&mut self.display).unwrap();
         }
+        let text_style = MonoTextStyle::new(
+            &FONT_4X6,
+            BinaryColor::On,
+        );
 
+        for (i, label) in BAND_LABELS.iter().enumerate() {
+
+            let x = (i * bar_width + 1) as i32;
+
+            Text::with_baseline(
+                label,
+                Point::new(x, 63),
+                text_style,
+                Baseline::Bottom,
+            )
+            .draw(&mut self.display)
+            .unwrap();
+        }
         let t = Instant::now();
 
         self.display.flush().unwrap();
