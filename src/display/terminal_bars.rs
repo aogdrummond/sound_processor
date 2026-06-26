@@ -1,197 +1,197 @@
-use super::source::DisplaySource;
+// use super::source::DisplaySource;
 
-use std::io::{stdout, Write};
-use std::sync::mpsc;
-use std::time::{Duration, Instant};
+// use std::io::{stdout, Write};
+// use std::sync::mpsc;
+// use std::time::{Duration, Instant};
 
-const NUM_BANDS: usize = 8;
-const BAR_WIDTH: usize = 50;
+// const NUM_BANDS: usize = 8;
+// const BAR_WIDTH: usize = 50;
 
-const LABELS: [&str; NUM_BANDS] = [
-    "0-100 Hz",
-    "100-250",
-    "250-500",
-    "500-1k",
-    "1k-2k",
-    "2k-4k",
-    "4k-8k",
-    "8k-22k",
-];
+// const LABELS: [&str; NUM_BANDS] = [
+//     "0-100 Hz",
+//     "100-250",
+//     "250-500",
+//     "500-1k",
+//     "1k-2k",
+//     "2k-4k",
+//     "4k-8k",
+//     "8k-22k",
+// ];
 
-const BLOCKS: [&str; 9] = [
-    " ",
-    "▏",
-    "▎",
-    "▍",
-    "▌",
-    "▋",
-    "▊",
-    "▉",
-    "█",
-];
+// const BLOCKS: [&str; 9] = [
+//     " ",
+//     "▏",
+//     "▎",
+//     "▍",
+//     "▌",
+//     "▋",
+//     "▊",
+//     "▉",
+//     "█",
+// ];
 
-pub struct TerminalBars {}
+// pub struct TerminalBars {}
 
-impl TerminalBars {
-    pub fn new() -> Result<Self, hound::Error> {
+// impl TerminalBars {
+//     pub fn new() -> Result<Self, hound::Error> {
 
-        // Clear terminal once
-        print!("\x1B[2J");
+//         // Clear terminal once
+//         print!("\x1B[2J");
 
-        Ok(Self {})
-    }
-}
+//         Ok(Self {})
+//     }
+// }
 
-impl DisplaySource for TerminalBars {
+// impl DisplaySource for TerminalBars {
 
-    fn display_results(
-        &mut self,
-        rx_bands: mpsc::Receiver<Vec<f32>>
-    ) {
+//     fn display_results(
+//         &mut self,
+//         rx_bands: mpsc::Receiver<Vec<f32>>
+//     ) {
 
-        let mut last_update = Instant::now();
+//         let mut last_update = Instant::now();
 
-        let mut band_acc = vec![0.0f32; NUM_BANDS];
-        let mut count = 0usize;
+//         let mut band_acc = vec![0.0f32; NUM_BANDS];
+//         let mut count = 0usize;
 
-        let mut displayed = vec![0.0f32; NUM_BANDS];
-        let mut peaks = vec![0.0f32; NUM_BANDS];
+//         let mut displayed = vec![0.0f32; NUM_BANDS];
+//         let mut peaks = vec![0.0f32; NUM_BANDS];
 
-        while let Ok(bands) = rx_bands.recv() {
+//         while let Ok(bands) = rx_bands.recv() {
 
-            for i in 0..NUM_BANDS {
-                band_acc[i] += bands[i];
-            }
+//             for i in 0..NUM_BANDS {
+//                 band_acc[i] += bands[i];
+//             }
 
-            count += 1;
+//             count += 1;
 
-            if last_update.elapsed() >= Duration::from_millis(100)
-                && count > 0
-            {
-                last_update = Instant::now();
+//             if last_update.elapsed() >= Duration::from_millis(100)
+//                 && count > 0
+//             {
+//                 last_update = Instant::now();
 
-                let mut avg = vec![0.0f32; NUM_BANDS];
+//                 let mut avg = vec![0.0f32; NUM_BANDS];
 
-                for i in 0..NUM_BANDS {
+//                 for i in 0..NUM_BANDS {
 
-                    avg[i] = to_db_display(
-                        band_acc[i] / count as f32
-                    );
+//                     avg[i] = to_db_display(
+//                         band_acc[i] / count as f32
+//                     );
 
-                    // Exponential smoothing
-                    displayed[i] =
-                        0.8 * displayed[i]
-                        + 0.2 * avg[i];
+//                     // Exponential smoothing
+//                     displayed[i] =
+//                         0.8 * displayed[i]
+//                         + 0.2 * avg[i];
 
-                    // Peak hold with decay
-                    peaks[i] *= 0.97;
+//                     // Peak hold with decay
+//                     peaks[i] *= 0.97;
 
-                    if displayed[i] > peaks[i] {
-                        peaks[i] = displayed[i];
-                    }
-                }
+//                     if displayed[i] > peaks[i] {
+//                         peaks[i] = displayed[i];
+//                     }
+//                 }
 
-                draw_bars(&displayed, &peaks);
+//                 draw_bars(&displayed, &peaks);
 
-                band_acc.fill(0.0);
-                count = 0;
-            }
-        }
+//                 band_acc.fill(0.0);
+//                 count = 0;
+//             }
+//         }
 
-        println!("Display finished");
-    }
-}
+//         println!("Display finished");
+//     }
+// }
 
-fn draw_bars(
-    bands: &[f32],
-    peaks: &[f32],
-) {
+// fn draw_bars(
+//     bands: &[f32],
+//     peaks: &[f32],
+// ) {
 
-    // Move cursor to top-left
-    print!("\x1B[H");
+//     // Move cursor to top-left
+//     print!("\x1B[H");
 
-    println!("Real-Time Spectrum Analyzer");
-    println!("===========================");
-    println!();
+//     println!("Real-Time Spectrum Analyzer");
+//     println!("===========================");
+//     println!();
 
-    for i in 0..NUM_BANDS {
+//     for i in 0..NUM_BANDS {
 
-        let value = bands[i];
+//         let value = bands[i];
 
-        let scaled =
-            (value / 80.0)
-            .clamp(0.0, 1.0)
-            * BAR_WIDTH as f32;
+//         let scaled =
+//             (value / 80.0)
+//             .clamp(0.0, 1.0)
+//             * BAR_WIDTH as f32;
 
-        let full_blocks =
-            scaled.floor() as usize;
+//         let full_blocks =
+//             scaled.floor() as usize;
 
-        let partial =
-            ((scaled - full_blocks as f32) * 8.0)
-            .round() as usize;
+//         let partial =
+//             ((scaled - full_blocks as f32) * 8.0)
+//             .round() as usize;
 
-        // let mut line =
-        //     vec![' '; BAR_WIDTH];
+//         // let mut line =
+//         //     vec![' '; BAR_WIDTH];
 
-        // for j in 0..full_blocks.min(BAR_WIDTH) {
-        //     line[j] = '█';
-        // }
+//         // for j in 0..full_blocks.min(BAR_WIDTH) {
+//         //     line[j] = '█';
+//         // }
 
-        // let mut bar: String =
-        //     line.iter().collect();
+//         // let mut bar: String =
+//         //     line.iter().collect();
 
-        // if partial > 0
-        //     && full_blocks < BAR_WIDTH
-        // {
-        //     bar.replace_range(
-        //         full_blocks..full_blocks + 1,
-        //         BLOCKS[partial.min(8)]
-        //     );
-        let mut cells =
-            vec![" ".to_string(); BAR_WIDTH];
+//         // if partial > 0
+//         //     && full_blocks < BAR_WIDTH
+//         // {
+//         //     bar.replace_range(
+//         //         full_blocks..full_blocks + 1,
+//         //         BLOCKS[partial.min(8)]
+//         //     );
+//         let mut cells =
+//             vec![" ".to_string(); BAR_WIDTH];
 
-        for j in 0..full_blocks.min(BAR_WIDTH) {
-            cells[j] = "█".to_string();
-        }
+//         for j in 0..full_blocks.min(BAR_WIDTH) {
+//             cells[j] = "█".to_string();
+//         }
 
-        if partial > 0 && full_blocks < BAR_WIDTH {
-            cells[full_blocks] =
-                BLOCKS[partial.min(8)].to_string();
-        }
-        // }
+//         if partial > 0 && full_blocks < BAR_WIDTH {
+//             cells[full_blocks] =
+//                 BLOCKS[partial.min(8)].to_string();
+//         }
+//         // }
 
-        let peak_pos =
-            ((peaks[i] / 80.0)
-            * BAR_WIDTH as f32)
-            .clamp(0.0, (BAR_WIDTH - 1) as f32)
-            as usize;
+//         let peak_pos =
+//             ((peaks[i] / 80.0)
+//             * BAR_WIDTH as f32)
+//             .clamp(0.0, (BAR_WIDTH - 1) as f32)
+//             as usize;
 
-        if peak_pos < BAR_WIDTH {
-            cells[peak_pos] = "|".to_string();
-        }
+//         if peak_pos < BAR_WIDTH {
+//             cells[peak_pos] = "|".to_string();
+//         }
 
-        let bar = cells.join("");
+//         let bar = cells.join("");
 
-        println!(
-            "{:<10} | {} {:5.1}",
-            LABELS[i],
-            bar,
-            value
-        );
-    }
+//         println!(
+//             "{:<10} | {} {:5.1}",
+//             LABELS[i],
+//             bar,
+//             value
+//         );
+//     }
 
-    stdout().flush().unwrap();
-}
+//     stdout().flush().unwrap();
+// }
 
-fn to_db_display(
-    amplitude: f32
-) -> f32 {
+// fn to_db_display(
+//     amplitude: f32
+// ) -> f32 {
 
-    let db =
-        20.0 * amplitude.max(1e-10).log10();
+//     let db =
+//         20.0 * amplitude.max(1e-10).log10();
 
-    let db =
-        db.clamp(-80.0, 0.0);
+//     let db =
+//         db.clamp(-80.0, 0.0);
 
-    db + 80.0
-}
+//     db + 80.0
+// }

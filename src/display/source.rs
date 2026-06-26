@@ -1,4 +1,5 @@
 use std::sync::mpsc;
+use std::time::Instant;
 
 pub struct AudioFrame {
     pub timestamp: Instant,
