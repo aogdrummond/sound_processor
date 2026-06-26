@@ -12,7 +12,7 @@ use ssd1306::mode::BufferedGraphicsMode;
 use ssd1306::{prelude::*,I2CDisplayInterface,Ssd1306};
 
 const NUM_BANDS: usize = 8;
-const UPDATE_INTERVAL_MS: int = 100
+const UPDATE_INTERVAL_MS: i32 = 100;
 
 pub struct OledBars {
     display: Ssd1306<
@@ -67,8 +67,8 @@ impl DisplaySource for OledBars {
             // //time_to_upate
             // if last_update.elapsed() >= Duration::from_millis(UPDATE_INTERVAL_MS)
             //     && count > 0
-            if self.is_time_to_update() {
-                self.update_display();
+            if self.is_time_to_update(last_update) {
+                self.update_display(band_acc,count, displayed);
             }
         }
     }
@@ -76,17 +76,17 @@ impl DisplaySource for OledBars {
 
 impl OledBars {
 
-    fn is_time_to_update(&mut self)-> bool{
-        let bool is_time = (last_update.elapsed() >= Duration::from_millis(UPDATE_INTERVAL_MS) && count > 0);        
+    fn is_time_to_update(&mut self, last_update)-> bool{
+        let is_time: bool = (last_update.elapsed() >= Duration::from_millis(UPDATE_INTERVAL_MS) && count > 0);        
         is_time
     }
 
-    fn update_display(&mut self){
-        last_update = Instant::now();
+    fn update_display(&mut self,&mut band_acc,&mut count,&mut displayed, ){
+        let last_update = Instant::now();
 
         for i in 0..NUM_BANDS {
-            let avg = to_db_display(band_acc[i] / count as f32);
-            displayed[i] = 0.8 * displayed[i] + 0.2 * avg;
+            let avg = to_db_display(band_acc[i] / count as f32); // db of average
+            displayed[i] = 0.8 * displayed[i] + 0.2 * avg; //This is an exponential moving average (EMA), a common low-pass filter for smoothing noisy signals.
         }
 
         self.draw_bars(&displayed);
