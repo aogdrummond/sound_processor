@@ -2,18 +2,13 @@ mod audio;
 mod audio_processing;
 use audio_processing::Processor;
 mod display;
-
+use audio::source::AudioFrame
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
 
 const SAMPLE_RATE: usize = 48000;
-
-pub struct AudioFrame {
-    pub timestamp: Instant,
-    pub samples: Vec<f32>,
-}
 
 fn produce_audio<S>(
     mut source: S,
@@ -29,8 +24,6 @@ where
         if tx_chunk.send(frame).is_err() {
             break;
         }
-
-        // thread::sleep(chunk_time);
     }
 }
 
