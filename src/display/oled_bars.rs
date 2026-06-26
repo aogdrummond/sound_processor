@@ -74,6 +74,7 @@ impl DisplaySource for OledBars {
             //     && count > 0
             if self.is_time_to_update(last_update,count) {
                 self.update_display(&mut band_acc,&mut count,&mut displayed);
+                last_update = Instant::now();
             }
         }
     }
