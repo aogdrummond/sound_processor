@@ -118,7 +118,7 @@ impl OledBars {
 
         for (i, value) in bands.iter().enumerate() {
 
-            let normalized = (value / 80.0).clamp(0.0, 1.0);
+            let normalized = (value / 80.0);//.clamp(0.0, 1.0);
 
             let bar_height = (normalized * height as f32) as i32;
 
@@ -144,5 +144,6 @@ fn to_db_display(
 
     let db = 20.0 * amplitude.max(1e-10).log10();
 
-    db.clamp(-80.0, 0.0) + 80.0
+    // db.clamp(-80.0, 0.0) + 80.0
+    db + 80.0
 }
