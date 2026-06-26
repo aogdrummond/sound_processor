@@ -72,7 +72,7 @@ impl DisplaySource for OledBars {
             // //time_to_upate
             // if last_update.elapsed() >= Duration::from_millis(UPDATE_INTERVAL_MS)
             //     && count > 0
-            if self.is_time_to_update(&mut last_update,count) {
+            if self.is_time_to_update(last_update,count) {
                 self.update_display(&mut band_acc,&mut count,&mut displayed);
             }
         }
@@ -81,9 +81,8 @@ impl DisplaySource for OledBars {
 
 impl OledBars {
 
-    fn is_time_to_update(&mut self,last_update: Instant, count:usize)-> bool{
+    fn is_time_to_update(&mut self,&mut last_update: Instant, count:usize)-> bool{
         let is_time: bool = (last_update.elapsed() >= Duration::from_millis(UPDATE_INTERVAL_MS) && count > 0);        
-        last_update = Instant::now();
         is_time
     }
 
