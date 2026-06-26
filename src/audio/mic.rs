@@ -19,11 +19,11 @@ impl MicrophoneSource {
             .default_input_device()
             .ok_or("No input device found")?;
 
-        // println!("Supported configs:");
+        println!("Supported configs:");
 
-        // for cfg in device.supported_input_configs()? {
-        //     println!("{:?}", cfg);
-        // }
+        for cfg in device.supported_input_configs()? {
+            println!("{:?}", cfg);
+        }
 
         let config = device
                         .supported_input_configs()?
