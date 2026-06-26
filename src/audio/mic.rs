@@ -15,13 +15,30 @@ impl MicrophoneSource {
 
         let host = cpal::default_host();
 
+        // let device = host
+        //     .default_input_device()
+        //     .ok_or("No input device found")?;
+
         let device = host
-            .default_input_device()
-            .ok_or("No input device found")?;
+            .input_devices()?
+            .find(|d| {
+                d.name()
+                    .map(|n| n.contains("USB") || n.contains("Device"))
+                    .unwrap_or(false)
+            })
+            .ok_or("No usable input device found")?;
 
         println!("Supported configs:");
 
-        for cfg in device.supported_input_configs()? {
+        let configs = match device.supported_input_configs() {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("Device does not support configs: {}", e);
+                return Err("Invalid audio device config".into());
+            }
+        };
+
+        for cfg in configs? {
             println!("{:?}", cfg);
         }
 
