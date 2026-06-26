@@ -17,7 +17,7 @@ pub struct AudioFrame {
 
 fn produce_audio<S>(
     mut source: S,
-    tx_chunk: mpsc::Sender<Vec<f32>>)
+    tx_chunk: mpsc::Sender<AudioFrame>)
 where
     S: audio::source::AudioSource,
 {
@@ -34,7 +34,7 @@ where
     }
 }
 
-fn process_audio(rx_chunk: mpsc::Receiver<Vec<f32>>,
+fn process_audio(rx_chunk: mpsc::Receiver<AudioFrame>,
                  tx_bands: mpsc::Sender<Vec<f32>>){
     let mut processor = Processor::new(audio::wav::CHUNK_SIZE);
 
