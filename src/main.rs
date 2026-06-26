@@ -64,7 +64,7 @@ where
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Channel: Audio -> DSP
-    let (tx_chunk, rx_chunk) = mpsc::channel::<Vec<f32>>();
+    let (tx_chunk, rx_chunk) = mpsc::channel::<AudioFrame>();
 
     // Channel: DSP -> Display
     let (tx_bands, rx_bands) = mpsc::channel::<Vec<f32>>();

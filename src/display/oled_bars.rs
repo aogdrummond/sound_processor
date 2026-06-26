@@ -12,7 +12,7 @@ use ssd1306::mode::BufferedGraphicsMode;
 use ssd1306::{prelude::*,I2CDisplayInterface,Ssd1306};
 
 const NUM_BANDS: usize = 8;
-const UPDATE_INTERVAL_MS: i32 = 100;
+const UPDATE_INTERVAL_MS: u64 = 100;
 
 pub struct OledBars {
     display: Ssd1306<
