@@ -125,7 +125,15 @@ impl OledBars {
             let x = (i * bar_width) as i32;
 
             let y = height as i32 - bar_height;
-
+            println!(
+                "band={} value={:.2} normalized={:.2} height={} x={} y={}",
+                i,
+                value,
+                normalized,
+                bar_height,
+                x,
+                y
+            );
             Rectangle::new(Point::new(x, y),Size::new((bar_width - 2) as u32,
                     bar_height as u32,
                 ),
