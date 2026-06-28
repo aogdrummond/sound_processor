@@ -17,7 +17,7 @@ const UPDATE_INTERVAL_MS: u64 = 100;
 const BAND_LABELS: [&str; NUM_BANDS] = ["63","125","250","500","1K","2K","4K","8K"];
 const WIDTH : usize = 128;
 const GRAPH_HEIGHT: usize = 56;
-const I2C_PERIPHERAL_PATH: str = "/dev/i2c-1";
+const I2C_PERIPHERAL_PATH: &str = "/dev/i2c-1";
 
 
 pub struct OledBars {display: Ssd1306<
