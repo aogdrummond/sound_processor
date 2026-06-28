@@ -1,51 +1,35 @@
+use super::super::audio::source::AudioFrame;
+use super::super::utils::utils::{to_db_display,
+                                 exponential_moving_average};
 use super::source::DisplaySource;
-
 use std::sync::mpsc;
-use std::time::{Duration, Instant};
 
-use embedded_graphics::{pixelcolor::BinaryColor,prelude::*,
-    primitives::{PrimitiveStyle,Rectangle}
-};
-use embedded_graphics::{
-    mono_font::{
-        ascii::FONT_4X6,
-        MonoTextStyle,
-    },
-    text::{Baseline, Text},
-};
+use std::time::{Duration, Instant};
+use embedded_graphics::{pixelcolor::BinaryColor,prelude::*,primitives::{PrimitiveStyle,Rectangle}};
+use embedded_graphics::{mono_font::{ascii::FONT_4X6,MonoTextStyle,},text::{Baseline, Text}};
 use linux_embedded_hal::I2cdev;
 use ssd1306::mode::BufferedGraphicsMode;
 use ssd1306::{prelude::*,I2CDisplayInterface,Ssd1306};
 
+// GLOBAL VARIABLES
 const NUM_BANDS: usize = 8;
 const UPDATE_INTERVAL_MS: u64 = 100;
+const BAND_LABELS: [&str; NUM_BANDS] = ["63","125","250","500","1K","2K","4K","8K"];
+const WIDTH : usize = 128;
+const GRAPH_HEIGHT: usize = 56;
+const I2C_PERIPHERAL_PATH: str = "/dev/i2c-1";
 
-const BAND_LABELS: [&str; NUM_BANDS] = [
-    "63",
-    "125",
-    "250",
-    "500",
-    "1K",
-    "2K",
-    "4K",
-    "8K",
-];
 
-pub struct OledBars {
-    display: Ssd1306<
-        I2CInterface<I2cdev>,
-        DisplaySize128x64,
-        BufferedGraphicsMode<DisplaySize128x64>,
-    >,
-}
-
-use super::super::audio::source::AudioFrame;
-
+pub struct OledBars {display: Ssd1306<
+                    I2CInterface<I2cdev>,
+                    DisplaySize128x64,
+                    BufferedGraphicsMode<DisplaySize128x64>
+                    >}
 
 impl OledBars {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
 
-        let i2c = I2cdev::new("/dev/i2c-1")?; //RPi I2C peripheral
+        let i2c = I2cdev::new(I2C_PERIPHERAL_PATH)?;
 
         let interface = I2CDisplayInterface::new(i2c);
 
@@ -65,15 +49,13 @@ impl OledBars {
 
 impl DisplaySource for OledBars {
 
-    fn display_results(
-        &mut self,
-        rx_bands: mpsc::Receiver<AudioFrame>
+    fn display_results(&mut self,
+                       rx_bands: mpsc::Receiver<AudioFrame>
     ) {
-
         let mut last_update = Instant::now();
-        let mut band_acc = vec![0.0f32; NUM_BANDS];
+        let mut band_acc = [0.0; NUM_BANDS];
         let mut count = 0usize;
-        let mut displayed = vec![0.0f32; NUM_BANDS];
+        let mut accumulated_values = [0.0; NUM_BANDS];
 
         while let Ok(frame) = rx_bands.recv() {
             println!("Latency Display: {:.3} ms",
@@ -85,12 +67,8 @@ impl DisplaySource for OledBars {
             }
 
             count += 1; //Every time count increases it means a new "chunk"
-
-            // //time_to_upate
-            // if last_update.elapsed() >= Duration::from_millis(UPDATE_INTERVAL_MS)
-            //     && count > 0
-            if self.is_time_to_update(last_update,count) {
-                self.update_display(&mut band_acc,&mut count,&mut displayed);
+            if is_time_to_update(last_update,count) {
+                self.update_display(&mut band_acc,&mut count, &mut accumulated_values);
                 last_update = Instant::now();
             }
         }
@@ -99,102 +77,70 @@ impl DisplaySource for OledBars {
 
 impl OledBars {
 
-    fn is_time_to_update(&mut self, last_update: Instant, count:usize)-> bool{
-        let is_time: bool = (last_update.elapsed() >= Duration::from_millis(UPDATE_INTERVAL_MS) && count > 0);        
-        is_time
-    }
-
-    fn update_display(&mut self, band_acc: &mut Vec<f32>,
+    fn update_display(&mut self, accumulated_values: &mut [f32],
         count: &mut usize,
-        displayed: &mut Vec<f32> ){
-        // last_update = Instant::now();
-
-        for i in 0..NUM_BANDS {
-            let avg = to_db_display(band_acc[i] / *count as f32); // db of average
-            displayed[i] = 0.8 * displayed[i] + 0.2 * avg; //This is an exponential moving average (EMA), a common low-pass filter for smoothing noisy signals.
-        }
-        println!("DRAW");
-        self.draw_bars(&displayed);
-        band_acc.fill(0.0);
-        *count = 0;
-
+        per_band_amplitude: &mut [f32] ){
+        compute_display_lvls(accumulated_values, *count, per_band_amplitude);    
+        self.draw_screen(per_band_amplitude);
+        self.reset_buffer(accumulated_values, count);
     }
 
-}
-
-impl OledBars {
-
-    fn draw_bars(&mut self,bands: &[f32]) {
-
+    fn draw_screen(&mut self,per_band_amplitude: &[f32]) {
         self.display.clear(BinaryColor::Off).unwrap();
+        let bar_width = WIDTH / NUM_BANDS;
+        self.draw_bars(per_band_amplitude, bar_width);
+        self.draw_labels(bar_width);
+        let t = Instant::now();
+        self.display.flush().unwrap();
+        println!("flush = {:.3} ms",t.elapsed().as_secs_f64() * 1000.0);
+    }
 
-        let width = 128;
-        let height = 64;
-        let graph_height = 56;
+    fn reset_buffer(&mut self, accumulated_values: &mut [f32], count: &mut usize){
+        accumulated_values.fill(0.0);
+        *count = 0;    
+    }
 
+    fn draw_bars(&mut self, per_band_amplitude: &[f32], bar_width: usize){
 
-        let bar_width = width / NUM_BANDS;
-
-        for (i, value) in bands.iter().enumerate() {
-
+        for (i, value) in per_band_amplitude.iter().enumerate() {
             let normalized = (value / 40.0).clamp(0.0, 1.0).powf(0.5);
-
-            let bar_height = (normalized * graph_height as f32) as i32;
-
-            let y = graph_height as i32 - bar_height;
-                
+            let bar_height = (normalized * GRAPH_HEIGHT as f32) as i32;
+            let y = GRAPH_HEIGHT as i32 - bar_height;
             let x = (i * bar_width) as i32;
-
-            println!(
-                "band={} value={:.2} normalized={:.2} height={} x={} y={}",
-                i,
-                value,
-                normalized,
-                bar_height,
-                x,
-                y
-            );
-            Rectangle::new(Point::new(x, y),Size::new((bar_width - 2) as u32,
-                    bar_height as u32,
-                ),
-            )
-            .into_styled(PrimitiveStyle::with_fill(BinaryColor::On),
+            Rectangle::new(Point::new(x, y),
+                            Size::new((bar_width - 2) as u32,bar_height as u32)
+                        ).into_styled(PrimitiveStyle::with_fill(BinaryColor::On),
             ).draw(&mut self.display).unwrap();
-        }
-        let text_style = MonoTextStyle::new(
-            &FONT_4X6,
-            BinaryColor::On,
-        );
+        }   
+    }
 
+    fn draw_labels(&mut self, bar_width: usize){
+
+        let text_style = MonoTextStyle::new(&FONT_4X6,BinaryColor::On);
+        
         for (i, label) in BAND_LABELS.iter().enumerate() {
-
             let x = (i * bar_width + 1) as i32;
-
             Text::with_baseline(
                 label,
                 Point::new(x, 63),
                 text_style,
                 Baseline::Bottom,
-            )
-            .draw(&mut self.display)
+            ).draw(&mut self.display)
             .unwrap();
-        }
-        let t = Instant::now();
-
-        self.display.flush().unwrap();
-
-        println!(
-            "flush = {:.3} ms",
-            t.elapsed().as_secs_f64() * 1000.0
-        );
+            }
     }
 }
 
-fn to_db_display(
-    amplitude: f32
-) -> f32 {
+fn is_time_to_update(last_update: Instant, count:usize)-> bool{
+    let is_time: bool = (last_update.elapsed() >= Duration::from_millis(UPDATE_INTERVAL_MS) && count > 0);        
+    is_time
+}
 
-    let db = 20.0 * amplitude.max(1e-10).log10();
-
-    db.clamp(-80.0, 0.0) + 80.0
+fn compute_display_lvls(accumulated_values: &[f32],
+                        count: usize,
+                        per_band_amplitude: &mut [f32]){
+    for i in 0..NUM_BANDS {
+        let avg = to_db_display(accumulated_values[i] / count as f32); // db of average
+        per_band_amplitude[i] = exponential_moving_average(per_band_amplitude[i],avg);
+    }
 }
