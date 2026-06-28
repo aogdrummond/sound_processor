@@ -1,15 +1,16 @@
 mod audio;
 mod audio_processing;
-use audio_processing::Processor;
 mod display;
 mod utils;
+use audio_processing::Processor;
 use std::env;
 use audio::source::AudioFrame;
 use std::sync::mpsc;
 use std::thread;
-use std::time::Duration;
-use std::time::Instant;
-
+use std::time::{Duration, Instant};
+use std::error::Error;
+use audio::source::AudioSource;
+use display::source::DisplaySource;
 // const SAMPLE_RATE: usize = 48000;
 
 fn create_audio_source(
