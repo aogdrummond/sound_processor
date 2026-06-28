@@ -10,13 +10,21 @@ use std::thread;
 use std::time::Duration;
 use std::time::Instant;
 
-const SAMPLE_RATE: usize = 48000;
+// const SAMPLE_RATE: usize = 48000;
 
-fn produce_audio<S>(
-    mut source: S,
+fn create_audio_source(
+    name: &str,
+) -> Result<Box<dyn AudioSource>, Box<dyn Error>> {
+    match name {
+        "mic" => Ok(Box::new(audio::mic::MicrophoneSource::new()?)),
+        "wav" => Ok(Box::new(audio::wav::WavSource::new()?)),
+        other => Err(format!("Unknown audio source '{}'", other).into()),
+    }
+}
+
+fn produce_audio(
+    mut source: Box<dyn audio::source::AudioSource>,
     tx_chunk: mpsc::Sender<AudioFrame>)
-where
-    S: audio::source::AudioSource,
 {
     while let Some(chunk) = source.next_chunk() {
         // Include here the timestamp
@@ -51,6 +59,17 @@ fn process_audio(rx_chunk: mpsc::Receiver<AudioFrame>,
     println!("Processing finished");
 }
 
+fn create_display_source(
+    name: &str,
+) -> Result<Box<dyn DisplaySource>, Box<dyn Error>> {
+    match name {
+        "terminal" => Ok(Box::new(display::terminal::TerminalDisplay::new()?)),
+        "bars" => Ok(Box::new(display::terminal_bars::TerminalBars::new()?)),
+        "oled" => Ok(Box::new(display::oled_bars::OledBars::new()?)),
+        other => Err(format!("Unknown display '{}'", other).into()),
+    }
+}
+
 fn display_results(
     mut source: Box<dyn display::source::DisplaySource>,
     rx_bands: mpsc::Receiver<AudioFrame>)
@@ -61,20 +80,10 @@ fn display_results(
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
     
-    let display_source: Box<dyn display::source::DisplaySource> = match args.get(1).map(String::as_str) {
-    
-        Some("terminal") => Box::new(display::terminal::TerminalDisplay::new()?),
-        Some("bars") => Box::new(display::terminal_bars::TerminalBars::new()?),
-        Some("oled") => Box::new(display::oled_bars::OledBars::new()?),
-        _ => {
-            eprintln!("Usage:");
-            eprintln!("  cargo run -- terminal");
-            eprintln!("  cargo run -- bars");
-            eprintln!("  cargo run -- oled");
-            return Ok(());
-        }
-    };
-    
+    let audio_source = create_audio_source(args.get(2).map(String::as_str).unwrap_or("mic"))?;
+
+    let display_source = create_display_source(args.get(1).map(String::as_str).unwrap_or("terminal"))?;
+
     // Channel: Audio -> DSP
     let (tx_chunk, rx_chunk) = mpsc::channel::<AudioFrame>();
 
@@ -82,13 +91,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (tx_bands, rx_bands) = mpsc::channel::<AudioFrame>();
 
     println!("Starting...");   
-    let audio_source = audio::mic::MicrophoneSource::new()?;
+    // let audio_source = audio::mic::MicrophoneSource::new()?;
     println!("Microphone initialized");
   
-    // let audio_source = audio::wav::WavSource::new()?;
-    // let display_source = display::terminal::TerminalDisplay::new()?;
-    // let display_source = display::terminal_bars::TerminalBars::new()?;
-    // let display_source = display::oled_bars::OledBars::new()?;
     let producer_thread = thread::spawn(move || produce_audio(audio_source, tx_chunk));
     let processing_thread = thread::spawn(move || process_audio(rx_chunk, tx_bands));
     let display_thread = thread::spawn(move || display_results(display_source,rx_bands));
