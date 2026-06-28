@@ -1,7 +1,7 @@
 use super::source::DisplaySource;
 use std::sync::mpsc;
 use crate::audio::source::AudioFrame;
-
+use crate::utils::utils::to_db_display
 use std::time::{Duration, Instant};
 
 pub struct TerminalDisplay {}
@@ -54,15 +54,4 @@ impl DisplaySource for TerminalDisplay {
         println!("Display finished");
     }
 
-}
-
-pub fn to_db_display(amplitude: f32) -> f32 {
-    let db = 20.0 * amplitude.max(1e-10).log10();
-
-    // clamp to a useful visual range
-    let db = db.clamp(-80.0, 0.0);
-
-    // shift to positive range (0–80)
-    db + 80.0
-    // db
 }

@@ -131,23 +131,6 @@ fn draw_bars(
             ((scaled - full_blocks as f32) * 8.0)
             .round() as usize;
 
-        // let mut line =
-        //     vec![' '; BAR_WIDTH];
-
-        // for j in 0..full_blocks.min(BAR_WIDTH) {
-        //     line[j] = '█';
-        // }
-
-        // let mut bar: String =
-        //     line.iter().collect();
-
-        // if partial > 0
-        //     && full_blocks < BAR_WIDTH
-        // {
-        //     bar.replace_range(
-        //         full_blocks..full_blocks + 1,
-        //         BLOCKS[partial.min(8)]
-        //     );
         let mut cells =
             vec![" ".to_string(); BAR_WIDTH];
 
