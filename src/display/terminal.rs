@@ -1,5 +1,6 @@
 use super::source::DisplaySource;
 use std::sync::mpsc;
+use crate::audio::source::AudioFrame;
 
 use std::time::{Duration, Instant};
 

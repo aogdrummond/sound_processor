@@ -1,4 +1,5 @@
 use super::source::DisplaySource;
+use crate::audio::source::AudioFrame;
 
 use std::io::{stdout, Write};
 use std::sync::mpsc;
