@@ -46,7 +46,7 @@ impl DisplaySource for TerminalBars {
 
     fn display_results(
         &mut self,
-        rx_bands: mpsc::Receiver<Vec<f32>>
+        rx_bands: mpsc::Receiver<AudioFrame>
     ) {
 
         let mut last_update = Instant::now();
@@ -60,7 +60,7 @@ impl DisplaySource for TerminalBars {
         while let Ok(bands) = rx_bands.recv() {
 
             for i in 0..NUM_BANDS {
-                band_acc[i] += bands[i];
+                band_acc[i] += bands.samples[i];
             }
 
             count += 1;
