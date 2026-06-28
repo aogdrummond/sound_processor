@@ -3,6 +3,7 @@ mod audio_processing;
 use audio_processing::Processor;
 mod display;
 mod utils;
+use std::env;
 use audio::source::AudioFrame;
 use std::sync::mpsc;
 use std::thread;
@@ -17,7 +18,6 @@ fn produce_audio<S>(
 where
     S: audio::source::AudioSource,
 {
-    let chunk_time = Duration::from_secs_f64(audio::wav::CHUNK_SIZE as f64 / SAMPLE_RATE as f64);
     while let Some(chunk) = source.next_chunk() {
         // Include here the timestamp
         let frame = AudioFrame{timestamp: Instant::now(),
@@ -51,17 +51,30 @@ fn process_audio(rx_chunk: mpsc::Receiver<AudioFrame>,
     println!("Processing finished");
 }
 
-fn display_results<S>(
-    mut source: S,
+fn display_results(
+    mut source: Box<dyn display::source::DisplaySource>,
     rx_bands: mpsc::Receiver<AudioFrame>)
-where
-    S: display::source::DisplaySource,
 {
     source.display_results(rx_bands);
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-
+    let args: Vec<String> = env::args().collect();
+    
+    let display_source: Box<dyn display::source::DisplaySource> = match args.get(1).map(String::as_str) {
+    
+        Some("terminal") => Box::new(display::terminal::TerminalDisplay::new()?),
+        Some("bars") => Box::new(display::terminal_bars::TerminalBars::new()?),
+        Some("oled") => Box::new(display::oled_bars::OledBars::new()?),
+        _ => {
+            eprintln!("Usage:");
+            eprintln!("  cargo run -- terminal");
+            eprintln!("  cargo run -- bars");
+            eprintln!("  cargo run -- oled");
+            return Ok(());
+        }
+    };
+    
     // Channel: Audio -> DSP
     let (tx_chunk, rx_chunk) = mpsc::channel::<AudioFrame>();
 
@@ -75,7 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let audio_source = audio::wav::WavSource::new()?;
     // let display_source = display::terminal::TerminalDisplay::new()?;
     // let display_source = display::terminal_bars::TerminalBars::new()?;
-    let display_source = display::oled_bars::OledBars::new()?;
+    // let display_source = display::oled_bars::OledBars::new()?;
     let producer_thread = thread::spawn(move || produce_audio(audio_source, tx_chunk));
     let processing_thread = thread::spawn(move || process_audio(rx_chunk, tx_bands));
     let display_thread = thread::spawn(move || display_results(display_source,rx_bands));

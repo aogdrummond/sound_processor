@@ -1,6 +1,6 @@
 use crate::audio::source::AudioFrame;
 use crate::utils::utils::{to_db_display,
-                                 exponential_moving_average};
+                        exponential_moving_average};
 use super::source::DisplaySource;
 use std::sync::mpsc;
 
