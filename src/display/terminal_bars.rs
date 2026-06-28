@@ -1,6 +1,6 @@
 use super::source::DisplaySource;
 use crate::audio::source::AudioFrame;
-
+use crate::utils::utils::to_db_display;
 use std::io::{stdout, Write};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
@@ -165,17 +165,4 @@ fn draw_bars(
     }
 
     stdout().flush().unwrap();
-}
-
-fn to_db_display(
-    amplitude: f32
-) -> f32 {
-
-    let db =
-        20.0 * amplitude.max(1e-10).log10();
-
-    let db =
-        db.clamp(-80.0, 0.0);
-
-    db + 80.0
 }

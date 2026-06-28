@@ -1,7 +1,7 @@
 use super::source::DisplaySource;
 use std::sync::mpsc;
 use crate::audio::source::AudioFrame;
-use crate::utils::utils::to_db_display
+use crate::utils::utils::to_db_display;
 use std::time::{Duration, Instant};
 
 pub struct TerminalDisplay {}
