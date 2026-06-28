@@ -1,5 +1,4 @@
-
-fn to_db_display(
+pub fn to_db_display(
     amplitude: f32
 ) -> f32 {
 
@@ -7,7 +6,7 @@ fn to_db_display(
     db.clamp(-80.0, 0.0) + 80.0
 }
 // Low-pass filter for smoothing noisy signals
-fn exponential_moving_average(
+pub fn exponential_moving_average(
     current_value: f32,
     average: f32
 ) -> f32 {

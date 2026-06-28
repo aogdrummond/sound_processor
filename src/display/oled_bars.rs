@@ -1,5 +1,5 @@
-use super::super::audio::source::AudioFrame;
-use super::super::utils::utils::{to_db_display,
+use crate::audio::source::AudioFrame;
+use crate::utils::utils::{to_db_display,
                                  exponential_moving_average};
 use super::source::DisplaySource;
 use std::sync::mpsc;

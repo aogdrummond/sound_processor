@@ -2,6 +2,7 @@ mod audio;
 mod audio_processing;
 use audio_processing::Processor;
 mod display;
+mod utils;
 use audio::source::AudioFrame;
 use std::sync::mpsc;
 use std::thread;
