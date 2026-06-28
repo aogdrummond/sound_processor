@@ -21,7 +21,7 @@ impl DisplaySource for TerminalDisplay {
 
         while let Ok(bands) = rx_bands.recv() {
 
-            for i in 0..bands.len() {
+            for i in 0..bands.samples.len() {
                 band_acc[i] += bands.samples[i];
             }
 
