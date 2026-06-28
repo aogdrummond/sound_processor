@@ -132,7 +132,7 @@ impl OledBars {
 }
 
 fn is_time_to_update(last_update: Instant, count:usize)-> bool{
-    let is_time: bool = (last_update.elapsed() >= Duration::from_millis(UPDATE_INTERVAL_MS) && count > 0);        
+    let is_time: bool = last_update.elapsed() >= Duration::from_millis(UPDATE_INTERVAL_MS) && count > 0;        
     is_time
 }
 

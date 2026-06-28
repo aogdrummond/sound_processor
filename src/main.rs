@@ -7,11 +7,10 @@ use std::env;
 use audio::source::AudioFrame;
 use std::sync::mpsc;
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use std::error::Error;
 use audio::source::AudioSource;
 use display::source::DisplaySource;
-// const SAMPLE_RATE: usize = 48000;
 
 fn create_audio_source(
     name: &str,
@@ -90,10 +89,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Channel: DSP -> Display
     let (tx_bands, rx_bands) = mpsc::channel::<AudioFrame>();
-
-    println!("Starting...");   
-    // let audio_source = audio::mic::MicrophoneSource::new()?;
-    println!("Microphone initialized");
   
     let producer_thread = thread::spawn(move || produce_audio(audio_source, tx_chunk));
     let processing_thread = thread::spawn(move || process_audio(rx_chunk, tx_bands));

@@ -1,7 +1,5 @@
 use std::sync::mpsc;
-use std::time::Instant;
 use super::super::audio::source::AudioFrame;
-
 
 pub trait DisplaySource: Send {
     fn display_results(
