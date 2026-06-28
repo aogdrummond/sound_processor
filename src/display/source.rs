@@ -3,6 +3,9 @@ use std::time::Instant;
 use super::super::audio::source::AudioFrame;
 
 
-pub trait DisplaySource {
-    fn display_results(&mut self, rx_bands: mpsc::Receiver<AudioFrame>);
+pub trait DisplaySource: Send {
+    fn display_results(
+        &mut self,
+        rx_bands: mpsc::Receiver<AudioFrame>,
+    );
 }
